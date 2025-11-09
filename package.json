@@ -28,8 +28,18 @@
     "db:migrate": "turbo -F @coffeeshop/db db:migrate"
   },
   "dependencies": {
+    "@auth/core": "^0.34.3",
+    "@auth/drizzle-adapter": "^1.11.1",
+    "@auth/pg-adapter": "^1.11.1",
+    "@hono/zod-validator": "^0.7.4",
+    "@types/pg": "^8.15.6",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.2",
-    "zod": "^4.1.11"
+    "drizzle-kit": "^0.31.6",
+    "drizzle-orm": "^0.44.7",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

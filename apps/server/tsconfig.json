@@ -5,7 +5,9 @@
 		"outDir": "dist",
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"@coffeeshop/db": ["../../packages/db/src/index.ts"],
+			"@coffeeshop/db/*": ["../../packages/db/src/*"]
 		},
 		"jsx": "react-jsx",
 		"jsxImportSource": "hono/jsx"
