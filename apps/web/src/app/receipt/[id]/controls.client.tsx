@@ -40,7 +40,7 @@ export default function Controls({
   if (mode === "cancel") {
     return (
       <button
-        className="btn btn-outline justify-start"
+        className="btn bg-white border border-neutral-200 text-neutral-800 hover:bg-neutral-50 justify-start"
         onClick={() => {
           if (!confirm("Cancel this order?")) return;
           updateStatus("cancelled");

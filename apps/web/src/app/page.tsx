@@ -152,9 +152,7 @@ export default function Home() {
   }, [cartItems]);
 
   const subtotal = lineItems.reduce((s, li) => s + li.total, 0);
-  const taxRate = 0.07;
-  const tax = subtotal * taxRate;
-  const total = subtotal + tax;
+  const total = subtotal; // prices already include VAT
 
   const handleQtyChange = (itemId: string, nextValue: number) => {
     const current = qty(itemId);
@@ -363,12 +361,8 @@ export default function Home() {
 
               <div className="space-y-1.5 border-t pt-3 text-sm">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>Subtotal (incl. VAT 7%)</span>
                   <span className="tabular-nums">{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>VAT (7%)</span>
-                  <span className="tabular-nums">{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between text-base font-semibold">
                   <span>Total</span>
