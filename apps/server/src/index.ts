@@ -2,13 +2,14 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { authRouter } from './routes/auth';
 import { shopRouter } from './routes/shop';
+import { uploadRouter, uploadsRouter } from './routes/upload';
 
 const app = new Hono();
 
 // CORS middleware
 app.use('*', cors({
   origin: process.env.CORS_ORIGIN?.split(',') || '*',
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
@@ -21,6 +22,8 @@ app.get('/', (c) => {
 // API routes
 app.route('/api/auth', authRouter);
 app.route('/api/shop', shopRouter);
+app.route('/api/upload', uploadRouter);
+app.route('/api/uploads', uploadsRouter);
 
 // 404 handler
 app.notFound((c) => {

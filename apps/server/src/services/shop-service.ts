@@ -7,4 +7,7 @@ export {
   getOrders,
   seedDatabase,
   needsSeeding,
+  updateMenuItemImage,
+  getShopSettings,
+  upsertShopSettings,
 } from '@coffeeshop/db';

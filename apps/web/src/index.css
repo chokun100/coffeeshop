@@ -99,3 +99,13 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@page {
+  margin: 0;
+}
+
+@media print {
+  body {
+    margin: 0;
+  }
+}

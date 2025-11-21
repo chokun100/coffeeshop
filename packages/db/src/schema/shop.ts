@@ -8,6 +8,29 @@ export const sizeEnum = pgEnum('size', ['S', 'M', 'L']);
 export const milkTypeEnum = pgEnum('milk_type', ['none', 'whole', 'skim', 'oat', 'soy', 'almond']);
 export const sugarLevelEnum = pgEnum('sugar_level', ['none', 'less', 'normal', 'extra']);
 
+// Store settings (single row)
+export const shopSettings = pgTable('shop_settings', {
+  id: serial('id').primaryKey(),
+  storeName: text('store_name').notNull().default('Cafe Station'),
+  address: text('address'),
+  email: text('email'),
+  phone: text('phone'),
+  currency: text('currency').notNull().default('THB'),
+  logoUrl: text('logo_url'),
+  enablePrint: boolean('enable_print').notNull().default(true),
+  showStoreDetails: boolean('show_store_details').notNull().default(true),
+  showCustomerDetails: boolean('show_customer_details').notNull().default(false),
+  printFormat: text('print_format').notNull().default('80mm'),
+  printHeader: text('print_header'),
+  printFooter: text('print_footer'),
+  showNotes: boolean('show_notes').notNull().default(true),
+  printToken: boolean('print_token').notNull().default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const selectShopSettingsSchema = createSelectSchema(shopSettings);
+
 // Categories
 export const categories = pgTable('categories', {
   id: serial('id').primaryKey(),
@@ -63,6 +86,7 @@ export const orders = pgTable('orders', {
   orderType: orderTypeEnum('order_type').notNull(),
   status: orderStatusEnum('status').default('pending').notNull(),
   totalCents: integer('total_cents').notNull(),
+  queueNumber: text('queue_number'),
   userId: text('user_id'), // Optional, for logged-in users
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -100,6 +124,14 @@ export const orderItems = pgTable('order_items', {
   // Add any additional indexes here
   orderIdx: index('order_items_order_id_idx').on(table.orderId),
 }));
+
+// Uploaded files (e.g., logos, images)
+export const uploads = pgTable('uploads', {
+  id: serial('id').primaryKey(),
+  url: text('url').notNull(),
+  type: text('type').notNull().default('image'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 // Base schema for order items
 const baseInsertOrderItemSchema = createInsertSchema(orderItems);

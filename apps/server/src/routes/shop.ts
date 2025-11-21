@@ -13,6 +13,45 @@ const shop = new Hono<{
   };
 }>();
 
+// Store settings
+const shopSettingsSchema = z.object({
+  storeName: z.string().min(1).max(255),
+  address: z.string().max(1000).optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().max(255).optional().nullable(),
+  currency: z.string().min(1).max(10),
+  logoUrl: z.string().optional().nullable(),
+  enablePrint: z.boolean().optional(),
+  showStoreDetails: z.boolean().optional(),
+  showCustomerDetails: z.boolean().optional(),
+  printFormat: z.enum(['58mm', '80mm']).optional(),
+  printHeader: z.string().max(255).optional().nullable(),
+  printFooter: z.string().max(255).optional().nullable(),
+  showNotes: z.boolean().optional(),
+  printToken: z.boolean().optional(),
+});
+
+shop.get('/settings', async (c) => {
+  try {
+    const settings = await shopService.getShopSettings();
+    return createApiResponse(c, { settings });
+  } catch (error) {
+    console.error('Error fetching shop settings:', error);
+    return createErrorResponse(c, 'Failed to fetch shop settings', 500);
+  }
+});
+
+shop.put('/settings', zValidator('json', shopSettingsSchema.partial()), async (c) => {
+  try {
+    const body = c.req.valid('json');
+    const updated = await shopService.upsertShopSettings(body);
+    return createApiResponse(c, { settings: updated });
+  } catch (error) {
+    console.error('Error updating shop settings:', error);
+    return createErrorResponse(c, 'Failed to update shop settings', 500);
+  }
+});
+
 // Get menu with categories and items
 shop.get('/menu', async (c) => {
   try {
@@ -21,6 +60,29 @@ shop.get('/menu', async (c) => {
   } catch (error) {
     console.error('Error fetching menu:', error);
     return createErrorResponse(c, 'Failed to fetch menu', 500);
+  }
+});
+
+// Update a menu item's image URL
+const updateItemImageSchema = z.object({
+  imageUrl: z.string().url().nullable().optional(),
+});
+
+shop.patch('/menu/items/:id/image', zValidator('json', updateItemImageSchema), async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+    if (isNaN(id)) {
+      return createErrorResponse(c, 'Invalid menu item ID', 400);
+    }
+    const body = c.req.valid('json');
+    const updated = await shopService.updateMenuItemImage(id, body.imageUrl ?? null);
+    if (!updated) {
+      return createErrorResponse(c, 'Menu item not found', 404);
+    }
+    return createApiResponse(c, { item: updated });
+  } catch (error) {
+    console.error('Error updating menu item image:', error);
+    return createErrorResponse(c, 'Failed to update menu item image', 500);
   }
 });
 

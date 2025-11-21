@@ -6,7 +6,8 @@ import {
   defaultMenuItems, 
   menuItems, 
   orders, 
-  orderItems
+  orderItems,
+  shopSettings,
 } from '../schema/shop';
 
 // Helper type for menu items with category
@@ -25,6 +26,63 @@ export type MenuCategory = {
     position: number;
   }>;
 };
+
+// Store settings
+export async function getShopSettings() {
+  const rows = await db.select().from(shopSettings).limit(1);
+  if (rows.length > 0) return rows[0];
+
+  // If no row yet, create default
+  const [created] = await db
+    .insert(shopSettings)
+    .values({})
+    .returning();
+  return created;
+}
+
+export async function upsertShopSettings(input: {
+  storeName?: string;
+  address?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  currency?: string;
+  logoUrl?: string | null;
+  enablePrint?: boolean;
+  showStoreDetails?: boolean;
+  showCustomerDetails?: boolean;
+  printFormat?: string;
+  printHeader?: string | null;
+  printFooter?: string | null;
+  showNotes?: boolean;
+  printToken?: boolean;
+
+}) {
+  // getShopSettings() always returns a row (creates default if missing)
+  const current = await getShopSettings();
+  const [updated] = await db
+    .update(shopSettings)
+    .set({
+      storeName: input.storeName ?? current.storeName,
+      address: input.address ?? current.address,
+      email: input.email ?? current.email,
+      phone: input.phone ?? current.phone,
+      currency: input.currency ?? current.currency,
+      logoUrl: input.logoUrl ?? current.logoUrl,
+      enablePrint: input.enablePrint ?? current.enablePrint,
+      showStoreDetails: input.showStoreDetails ?? current.showStoreDetails,
+      showCustomerDetails: input.showCustomerDetails ?? current.showCustomerDetails,
+      printFormat: input.printFormat ?? current.printFormat,
+      printHeader: input.printHeader ?? current.printHeader,
+      printFooter: input.printFooter ?? current.printFooter,
+      showNotes: input.showNotes ?? current.showNotes,
+      printToken: input.printToken ?? current.printToken,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(shopSettings.id, current.id))
+    .returning();
+
+  return updated;
+}
 
 export async function getMenu(): Promise<MenuCategory[]> {
   // Get all categories
@@ -101,6 +159,15 @@ export async function createOrder(
         throw new Error('Failed to create order');
       }
 
+      // Generate queue number in format M01, M02, ...
+      const queueNumber = `M${String(order.id).padStart(2, '0')}`;
+
+      const [orderWithQueue] = await tx
+        .update(orders)
+        .set({ queueNumber })
+        .where(eq(orders.id, order.id))
+        .returning();
+
       // Create order items
       const orderItemsData = items.map((item) => ({
         orderId: order.id,
@@ -116,7 +183,7 @@ export async function createOrder(
 
       await tx.insert(orderItems).values(orderItemsData);
 
-      return order;
+      return orderWithQueue;
     });
   } catch (err: any) {
     // Fallback for environments using neon-http driver that doesn't support transactions
@@ -157,7 +224,7 @@ export async function createOrder(
 
       await db.insert(orderItems).values(orderItemsData);
 
-      return order;
+      return orderWithQueue;
     }
     throw err;
   }
@@ -211,6 +278,16 @@ export async function getOrders(limit = 50) {
     .limit(limit);
 
   return ordersList;
+}
+
+// Update a menu item's image URL
+export async function updateMenuItemImage(id: number, imageUrl: string | null) {
+  const [item] = await db
+    .update(menuItems)
+    .set({ imageUrl, updatedAt: new Date() })
+    .where(eq(menuItems.id, id))
+    .returning();
+  return item;
 }
 
 // Seed the database with initial data
