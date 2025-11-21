@@ -19,6 +19,7 @@ import {
   Plus,
   Pencil,
   Check,
+  X,
 } from "lucide-react";
 import { Chip } from "@/components/headless/chip";
 import { Quantity } from "@/components/headless/quantity";
@@ -89,10 +90,25 @@ export default function Home() {
   const [customNotes, setCustomNotes] = useState("");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [pendingRemoveKey, setPendingRemoveKey] = useState<string | null>(null);
+  const [showMobileCart, setShowMobileCart] = useState(false);
+  const [tables, setTables] = useState<{ id: number; name: string }[]>([]);
+  const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
+  const [showTableSelectionModal, setShowTableSelectionModal] = useState(false);
 
   // Fetch menu from API
   useEffect(() => {
     setLoading(true);
+    
+    // Fetch tables
+    fetch("/api/shop/tables")
+      .then((r) => r.json())
+      .then((body) => {
+        const t = body?.data?.tables || [];
+        setTables(t);
+        if (t.length > 0) setSelectedTableId(t[0].id);
+      })
+      .catch(() => setTables([]));
+
     fetch("/api/shop/menu")
       .then((res) => res.json())
       .then((body) => {
@@ -251,8 +267,9 @@ export default function Home() {
     if (lineItems.length === 0 || submitting) return;
     setSubmitting(true);
     try {
+      const tableName = tables.find((t) => t.id === selectedTableId)?.name || "Unknown Table";
       const payload = {
-        customerName: "Table 5",
+        customerName: tableName,
         orderType,
         items: lineItems.map((li) => ({
           menuItemId: Number(li.itemId),
@@ -298,36 +315,22 @@ export default function Home() {
 
   return (
     <div>
-        <div className="border-b bg-white">
-          <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3 text-xl font-semibold">
-              <div className="size-6 rounded-md bg-amber-800 flex items-center justify-center text-white">
-                <Coffee className="size-4" />
-              </div>
-              <span>Cafe Station</span>
-            </div>
-            <div>
-              <span className="rounded-full border bg-neutral-50 px-3 py-1 text-xs text-neutral-600">Internal Ordering</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mx-auto max-w-6xl px-4 py-6 grid grid-cols-12 gap-6">
+        <div className="mx-auto max-w-7xl px-4 py-6 grid grid-cols-12 gap-6">
           <section className="col-span-12 lg:col-span-8">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Coffee Menu</h2>
-              <div className="relative w-56">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-2xl font-bold tracking-tight">Menu</h2>
+              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search coffee"
-                  className="pl-9"
+                  placeholder="Search menu..."
+                  className="pl-9 bg-white"
                 />
               </div>
             </div>
 
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div className="mb-6 flex flex-wrap gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -mx-2 px-2 border-b sm:static sm:bg-transparent sm:border-none sm:p-0">
               {(["All", "Espresso", "Milk", "Iced", "Seasonal"] as Category[]).map(
                 (c) => (
                   <Chip
@@ -335,10 +338,10 @@ export default function Home() {
                     selected={category === c}
                     onClick={() => setCategory(c)}
                     className={
-                      "rounded-full border px-3 py-1 text-sm transition-colors " +
+                      "rounded-full border px-4 py-1.5 text-sm font-medium transition-all " +
                       (category === c
-                        ? "bg-neutral-100 text-neutral-900 border-neutral-200"
-                        : "bg-white text-neutral-700 hover:bg-neutral-50")
+                        ? "bg-amber-900 text-white border-amber-900 shadow-sm"
+                        : "bg-white text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900")
                     }
                   >
                     {c}
@@ -347,7 +350,7 @@ export default function Home() {
               )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
               {filtered.map((item) => (
                 <div
                   key={item.id}
@@ -360,27 +363,36 @@ export default function Home() {
                       openCustomize(item.id);
                     }
                   }}
-                  className="rounded-lg border bg-white p-4 shadow-sm cursor-pointer hover:bg-neutral-50 focus:outline-none focus-visible:outline-none"
+                  className="group relative flex flex-col h-full overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:shadow-md hover:border-amber-200/50 active:scale-[0.98] cursor-pointer"
                 >
-                  <img
-                    src={item.imageUrl || "/images/default-menu.svg"}
-                    alt={item.name}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = "/images/default-menu.svg";
-                    }}
-                    className="mb-3 h-28 w-full rounded-md object-cover"
-                    loading="lazy"
-                  />
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0">
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {item.description}
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-neutral-100 shrink-0">
+                    <img
+                      src={item.imageUrl || "/images/default-menu.svg"}
+                      alt={item.name}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/images/default-menu.svg";
+                      }}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="p-3 flex flex-col flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-neutral-900 truncate" title={item.name}>{item.name}</div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+                          {item.description}
+                        </p>
                       </div>
                     </div>
-                    <div className="text-sm text-neutral-500">
-                      {formatCurrency(item.price)}
+                    <div className="mt-auto pt-3 flex items-center justify-between">
+                      <div className="text-sm font-bold text-amber-700">
+                        {formatCurrency(item.price)}
+                      </div>
+                      <div className="rounded-full bg-amber-50 p-1.5 text-amber-700 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Plus className="size-4" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -388,153 +400,359 @@ export default function Home() {
             </div>
           </section>
 
-          <aside className="col-span-12 lg:col-span-4">
-            <Card className="bg-white">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold">Order Summary</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="inline-flex items-center rounded-full bg-neutral-100 px-1 py-0.5 text-[11px] border border-neutral-200 shadow-inner">
-                      <button
-                        type="button"
-                        className={`px-2.5 py-1 rounded-full transition-colors ${
-                          orderType === "dine_in"
-                            ? "bg-white text-neutral-900 shadow-sm"
-                            : "text-neutral-500 hover:text-neutral-800"
-                        }`}
-                        onClick={() => setOrderType("dine_in")}
-                      >
-                        Dine in
-                      </button>
-                      <button
-                        type="button"
-                        className={`px-2.5 py-1 rounded-full transition-colors ${
-                          orderType === "takeaway"
-                            ? "bg-white text-neutral-900 shadow-sm"
-                            : "text-neutral-500 hover:text-neutral-800"
-                        }`}
-                        onClick={() => setOrderType("takeaway")}
-                      >
-                        Take away
-                      </button>
-                    </div>
-                    <span className="rounded-full border bg-neutral-50 px-2.5 py-1 text-xs text-neutral-600">Table 5</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  {lineItems.length === 0 && (
-                    <div className="text-sm text-muted-foreground">No items yet.</div>
-                  )}
-
-                  {lineItems.map((li) => (
-                    <div key={li.key} className="flex items-start justify-between">
-                      <div
-                        className="min-w-0"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            openCustomize(li.itemId, {
-                              sweetPct: sweetPctFromKey(li.key),
-                              extraShotQty: li.extraShotQty,
-                              notes: li.notes,
-                              editKey: li.key,
-                            });
-                          }
-                        }}
-                      >
-                        <div className="truncate">{li.name}</div>
-                        <div className="text-xs text-neutral-500">x{li.quantity} • sweet {sweetPctFromKey(li.key)}% {li.extraShotQty > 0 ? `• extra shot x${li.extraShotQty}` : ""}</div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="tabular-nums text-neutral-700 w-16 text-right">
-                          {formatCurrency(li.unit)}
-                        </div>
-                        <Quantity
-                          value={li.quantity}
-                          onChange={(v) =>
-                            setCartItems((prev) => {
-                              const next = prev.map((ci) =>
-                                ci.key === li.key ? { ...ci, quantity: Math.max(0, v) } : ci,
-                              );
-                              return next.filter((ci) => ci.quantity > 0);
-                            })
-                            
-                          }
-                        >
-                          {({ dec, inc }) => (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => {
-                                  if (li.quantity === 1) {
-                                    setPendingRemoveKey(li.key);
-                                    return;
-                                  }
-                                  dec();
-                                }}
-                              >
-                                <Minus className="size-4" />
-                              </Button>
-                              <Button variant="outline" size="icon" onClick={inc}>
-                                <Plus className="size-4" />
-                              </Button>
-                            </>
-                          )}
-                        </Quantity>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() =>
-                            openCustomize(li.itemId, {
-                              sweetPct: sweetPctFromKey(li.key),
-                              extraShotQty: li.extraShotQty,
-                              notes: li.notes,
-                              editKey: li.key,
-                            })
-                          }
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-1.5 border-t pt-3 text-sm">
-                  <div className="flex justify-between">
-                    <span>Subtotal (incl. VAT 7%)</span>
-                    <span className="tabular-nums">{formatCurrency(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-base font-semibold">
-                    <span>Total</span>
-                    <span className="tabular-nums">{formatCurrency(total)}</span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col items-stretch gap-3">
-                <div className="flex gap-3">
-                  <Button variant="outline" className="w-28" onClick={clear}>Clear</Button>
-                  <Button
-                    className="flex-1 bg-amber-700 hover:bg-amber-800"
-                    disabled={lineItems.length === 0 || submitting}
-                    onClick={submitOrder}
+          <aside className="hidden lg:block col-span-12 lg:col-span-4 lg:sticky lg:top-6 lg:self-start space-y-6">
+            <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-neutral-100 bg-neutral-50/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-lg text-neutral-900">Current Order</h3>
+                  <button
+                    onClick={() => setShowTableSelectionModal(true)}
+                    className="text-xs font-medium px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors flex items-center gap-2"
                   >
-                    {submitting ? "Submitting..." : "Submit Order"}
-                  </Button>
+                    <span>{tables.find(t => t.id === selectedTableId)?.name || "Select Table"}</span>
+                    <span className="text-amber-600 text-[10px]">▼</span>
+                  </button>
                 </div>
-                {submitted && (
-                  <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                    Order submitted. Preparing now.
+                <div className="grid grid-cols-2 gap-1 p-1 bg-neutral-200/50 rounded-xl">
+                  <button
+                    onClick={() => setOrderType("dine_in")}
+                    className={`py-1.5 text-sm font-medium rounded-lg transition-all ${
+                      orderType === "dine_in"
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700"
+                    }`}
+                  >
+                    Dine In
+                  </button>
+                  <button
+                    onClick={() => setOrderType("takeaway")}
+                    className={`py-1.5 text-sm font-medium rounded-lg transition-all ${
+                      orderType === "takeaway"
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700"
+                    }`}
+                  >
+                    Takeaway
+                  </button>
+                </div>
+              </div>
+
+              <div className="max-h-[calc(100vh-380px)] overflow-y-auto p-4 space-y-4 min-h-[200px]">
+                {lineItems.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="size-12 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400 mb-3">
+                      <Coffee className="size-6" />
+                    </div>
+                    <p className="text-sm text-neutral-500 font-medium">Your cart is empty</p>
+                    <p className="text-xs text-neutral-400 mt-1">Add some delicious coffee!</p>
                   </div>
                 )}
-              </CardFooter>
-            </Card>
+
+                {lineItems.map((li) => (
+                  <div key={li.key} className="flex items-start justify-between group">
+                    <div
+                      className="min-w-0 flex-1 cursor-pointer"
+                      onClick={() =>
+                        openCustomize(li.itemId, {
+                          sweetPct: sweetPctFromKey(li.key),
+                          extraShotQty: li.extraShotQty,
+                          notes: li.notes,
+                          editKey: li.key,
+                        })
+                      }
+                    >
+                      <div className="font-medium text-neutral-900 truncate">{li.name}</div>
+                      <div className="text-xs text-neutral-500 mt-0.5">
+                        {sweetPctFromKey(li.key)}% sweet
+                        {li.extraShotQty > 0 && ` • +${li.extraShotQty} shot`}
+                        {li.notes && ` • ${li.notes}`}
+                      </div>
+                      <div className="text-sm font-semibold text-amber-700 mt-1">
+                        {formatCurrency(li.unit)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pl-4">
+                      <Quantity
+                        value={li.quantity}
+                        onChange={(v) =>
+                          setCartItems((prev) => {
+                            const next = prev.map((ci) =>
+                              ci.key === li.key ? { ...ci, quantity: Math.max(0, v) } : ci,
+                            );
+                            return next.filter((ci) => ci.quantity > 0);
+                          })
+                        }
+                      >
+                        {({ dec, inc }) => (
+                          <div className="flex items-center gap-2 bg-neutral-50 rounded-lg border border-neutral-200 p-1">
+                            <button
+                              type="button"
+                              className="size-6 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-neutral-600"
+                              onClick={() => {
+                                if (li.quantity === 1) {
+                                  setPendingRemoveKey(li.key);
+                                  return;
+                                }
+                                dec();
+                              }}
+                            >
+                              <Minus className="size-3" />
+                            </button>
+                            <span className="text-sm font-medium tabular-nums min-w-[1.25rem] text-center">
+                              {li.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              className="size-6 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-neutral-600"
+                              onClick={inc}
+                            >
+                              <Plus className="size-3" />
+                            </button>
+                          </div>
+                        )}
+                      </Quantity>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 bg-neutral-50 border-t border-neutral-200 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-neutral-600">
+                    <span>Subtotal (incl. VAT)</span>
+                    <span className="font-medium">{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold text-neutral-900">
+                    <span>Total</span>
+                    <span>{formatCurrency(total)}</span>
+                  </div>
+                </div>
+                <Button
+                  className="w-full h-12 text-base bg-amber-900 hover:bg-amber-800 text-white rounded-xl shadow-amber-900/20 shadow-lg"
+                  disabled={lineItems.length === 0 || submitting}
+                  onClick={submitOrder}
+                >
+                  {submitting ? "Processing..." : "Submit Order"}
+                </Button>
+              </div>
+            </div>
           </aside>
         </div>
+        {/* Mobile Floating Cart Bar */}
+        <div className="fixed bottom-4 left-4 right-4 z-40 lg:hidden">
+          {lineItems.length > 0 && (
+            <button
+              onClick={() => setShowMobileCart(true)}
+              className="w-full bg-neutral-900 text-white p-4 rounded-2xl shadow-xl flex items-center justify-between animate-in slide-in-from-bottom-4 fade-in duration-300"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 px-3 py-1 rounded-lg text-sm font-medium">
+                  {lineItems.reduce((a, b) => a + b.quantity, 0)} items
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-xs text-neutral-300">Total</span>
+                  <span className="font-bold text-sm">{formatCurrency(total)}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm font-medium">
+                View Order
+              </div>
+            </button>
+          )}
+        </div>
+
+        {/* Mobile Cart Drawer */}
+        {showMobileCart && (
+          <dialog open className="modal modal-bottom sm:modal-middle">
+            <div className="modal-box bg-[#FBF7F2] p-0 overflow-hidden max-h-[85vh] flex flex-col w-full">
+              {/* Header */}
+              <div className="p-4 border-b border-neutral-200 bg-white flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="font-bold text-lg">Current Order</h3>
+                  <div className="mt-1">
+                    <button
+                        onClick={() => setShowTableSelectionModal(true)}
+                        className="text-xs font-medium px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors flex items-center gap-2"
+                    >
+                        <span>{tables.find(t => t.id === selectedTableId)?.name || "Select Table"}</span>
+                        <span className="text-amber-600 text-[10px]">▼</span>
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMobileCart(false)}
+                  className="btn btn-sm btn-circle btn-ghost"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Mobile List Content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-1 p-1 bg-neutral-200/50 rounded-xl mb-4">
+                  <button
+                    onClick={() => setOrderType("dine_in")}
+                    className={`py-1.5 text-sm font-medium rounded-lg transition-all ${
+                      orderType === "dine_in"
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700"
+                    }`}
+                  >
+                    Dine In
+                  </button>
+                  <button
+                    onClick={() => setOrderType("takeaway")}
+                    className={`py-1.5 text-sm font-medium rounded-lg transition-all ${
+                      orderType === "takeaway"
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700"
+                    }`}
+                  >
+                    Takeaway
+                  </button>
+                </div>
+
+                {lineItems.map((li) => (
+                  <div key={li.key} className="flex items-start justify-between group border-b border-neutral-100 pb-3 last:border-0">
+                    <div
+                      className="min-w-0 flex-1 cursor-pointer"
+                      onClick={() =>
+                        openCustomize(li.itemId, {
+                          sweetPct: sweetPctFromKey(li.key),
+                          extraShotQty: li.extraShotQty,
+                          notes: li.notes,
+                          editKey: li.key,
+                        })
+                      }
+                    >
+                      <div className="font-medium text-neutral-900 truncate">{li.name}</div>
+                      <div className="text-xs text-neutral-500 mt-0.5">
+                        {sweetPctFromKey(li.key)}% sweet
+                        {li.extraShotQty > 0 && ` • +${li.extraShotQty} shot`}
+                      </div>
+                      <div className="text-sm font-semibold text-amber-700 mt-1">
+                        {formatCurrency(li.unit)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pl-4">
+                      <Quantity
+                        value={li.quantity}
+                        onChange={(v) =>
+                          setCartItems((prev) => {
+                            const next = prev.map((ci) =>
+                              ci.key === li.key ? { ...ci, quantity: Math.max(0, v) } : ci,
+                            );
+                            return next.filter((ci) => ci.quantity > 0);
+                          })
+                        }
+                      >
+                        {({ dec, inc }) => (
+                          <div className="flex items-center gap-2 bg-neutral-50 rounded-lg border border-neutral-200 p-1">
+                            <button
+                              type="button"
+                              className="size-7 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-neutral-600"
+                              onClick={() => {
+                                if (li.quantity === 1) {
+                                  setPendingRemoveKey(li.key);
+                                  return;
+                                }
+                                dec();
+                              }}
+                            >
+                              <Minus className="size-3" />
+                            </button>
+                            <span className="text-sm font-medium tabular-nums min-w-[1.25rem] text-center">
+                              {li.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              className="size-7 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-neutral-600"
+                              onClick={inc}
+                            >
+                              <Plus className="size-3" />
+                            </button>
+                          </div>
+                        )}
+                      </Quantity>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-neutral-200 bg-white shrink-0 safe-area-bottom">
+                <div className="space-y-2 mb-4">
+                   <div className="flex justify-between text-base font-bold text-neutral-900">
+                    <span>Total</span>
+                    <span>{formatCurrency(total)}</span>
+                  </div>
+                </div>
+                <Button
+                  className="w-full h-12 text-base bg-amber-900 hover:bg-amber-800 text-white rounded-xl shadow-amber-900/20 shadow-lg"
+                  disabled={lineItems.length === 0 || submitting}
+                  onClick={submitOrder}
+                >
+                  {submitting ? "Processing..." : "Submit Order"}
+                </Button>
+              </div>
+            </div>
+            <form method="dialog" className="modal-backdrop" onClick={() => setShowMobileCart(false)}>
+              <button>close</button>
+            </form>
+          </dialog>
+        )}
+
+        {/* Table Selection Modal */}
+        {showTableSelectionModal && (
+          <dialog open className="modal">
+            <div className="modal-box max-w-md relative rounded-2xl bg-white border border-neutral-200 p-6">
+              <button 
+                className="absolute right-4 top-4 inline-grid place-items-center size-8 rounded-full bg-neutral-100 text-neutral-500 hover:bg-neutral-200 transition-colors"
+                onClick={() => setShowTableSelectionModal(false)}
+              >
+                <X className="size-4" />
+              </button>
+              
+              <h3 className="font-bold text-lg text-neutral-900 mb-1">Select Table</h3>
+              <p className="text-sm text-neutral-500 mb-6">Choose a table for this order.</p>
+              
+              <div className="grid grid-cols-3 gap-3">
+                {tables.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setSelectedTableId(t.id);
+                      setShowTableSelectionModal(false);
+                    }}
+                    className={`
+                      relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all
+                      ${selectedTableId === t.id 
+                        ? "border-amber-600 bg-amber-50 text-amber-800 shadow-sm" 
+                        : "border-neutral-100 bg-white text-neutral-600 hover:border-amber-200 hover:bg-neutral-50"
+                      }
+                    `}
+                  >
+                    <span className="text-lg font-bold">{t.name}</span>
+                    {selectedTableId === t.id && (
+                      <div className="absolute top-2 right-2 size-2 rounded-full bg-amber-600" />
+                    )}
+                  </button>
+                ))}
+                {tables.length === 0 && (
+                    <div className="col-span-3 text-center py-8 text-neutral-400 bg-neutral-50 rounded-xl border border-dashed border-neutral-200">
+                        No tables available.
+                    </div>
+                )}
+              </div>
+            </div>
+            <form method="dialog" className="modal-backdrop" onClick={() => setShowTableSelectionModal(false)}>
+              <button>close</button>
+            </form>
+          </dialog>
+        )}
+
         {/* Customize Modal */}
         {customizing && (
           <dialog open className="modal">

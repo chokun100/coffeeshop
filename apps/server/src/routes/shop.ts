@@ -52,6 +52,36 @@ shop.put('/settings', zValidator('json', shopSettingsSchema.partial()), async (c
   }
 });
 
+// Tables
+shop.get('/tables', async (c) => {
+  try {
+    const tables = await shopService.getTables();
+    return createApiResponse(c, { tables });
+  } catch (error) {
+    console.error('Error fetching tables:', error);
+    return createErrorResponse(c, 'Failed to fetch tables', 500);
+  }
+});
+
+const updateTablesSchema = z.object({
+  tables: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    maxSeats: z.number()
+  }))
+});
+
+shop.put('/tables', zValidator('json', updateTablesSchema), async (c) => {
+  try {
+    const { tables } = c.req.valid('json');
+    const updated = await shopService.updateTables(tables);
+    return createApiResponse(c, { tables: updated });
+  } catch (error) {
+    console.error('Error updating tables:', error);
+    return createErrorResponse(c, 'Failed to update tables', 500);
+  }
+});
+
 // Get menu with categories and items
 shop.get('/menu', async (c) => {
   try {
@@ -60,6 +90,41 @@ shop.get('/menu', async (c) => {
   } catch (error) {
     console.error('Error fetching menu:', error);
     return createErrorResponse(c, 'Failed to fetch menu', 500);
+  }
+});
+
+// Add menu item
+const addMenuItemSchema = z.object({
+  name: z.string().min(1),
+  priceCents: z.number().int().min(0),
+  categoryId: z.number().int(),
+  imageUrl: z.string().url().optional().nullable(),
+});
+
+shop.post('/menu/items', zValidator('json', addMenuItemSchema), async (c) => {
+  try {
+    const body = c.req.valid('json');
+    const item = await shopService.addMenuItem(body);
+    return createApiResponse(c, { item }, 201);
+  } catch (error) {
+    console.error('Error adding menu item:', error);
+    return createErrorResponse(c, 'Failed to add menu item', 500);
+  }
+});
+
+// Add category
+const addCategorySchema = z.object({
+  name: z.string().min(1),
+});
+
+shop.post('/menu/categories', zValidator('json', addCategorySchema), async (c) => {
+  try {
+    const { name } = c.req.valid('json');
+    const category = await shopService.addCategory(name);
+    return createApiResponse(c, { category }, 201);
+  } catch (error) {
+    console.error('Error adding category:', error);
+    return createErrorResponse(c, 'Failed to add category', 500);
   }
 });
 

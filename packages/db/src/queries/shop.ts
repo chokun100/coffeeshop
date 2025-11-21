@@ -8,6 +8,7 @@ import {
   orders, 
   orderItems,
   shopSettings,
+  tables,
 } from '../schema/shop';
 
 // Helper type for menu items with category
@@ -328,4 +329,69 @@ export async function needsSeeding(): Promise<boolean> {
     .from(categories);
   
   return result[0]?.count === 0;
+}
+
+// Tables
+export async function getTables() {
+  return await db.select().from(tables).orderBy(tables.id);
+}
+
+export async function updateTables(inputTables: Array<{ id: number; name: string; maxSeats: number }>) {
+  // Since we might not have transaction support in all drivers, we'll use a best-effort approach
+  // 1. Get all existing tables
+  const existing = await db.select().from(tables);
+  const existingIds = new Set(existing.map(t => t.id));
+  const inputIds = new Set(inputTables.map(t => t.id));
+  
+  // 2. Delete tables that are gone
+  const toDelete = existing.filter(t => !inputIds.has(t.id));
+  if (toDelete.length > 0) {
+    // Drizzle doesn't support IN array directly with some drivers easily without "inArray" helper
+    // We can loop delete or use sql
+    for (const t of toDelete) {
+        await db.delete(tables).where(eq(tables.id, t.id));
+    }
+  }
+
+  // 3. Upsert (Insert or Update)
+  for (const t of inputTables) {
+    if (existingIds.has(t.id)) {
+        // update
+        await db.update(tables)
+            .set({ name: t.name, maxSeats: t.maxSeats, updatedAt: new Date() })
+            .where(eq(tables.id, t.id));
+    } else {
+        // insert
+        await db.insert(tables).values({ id: t.id, name: t.name, maxSeats: t.maxSeats });
+    }
+  }
+
+  return await getTables();
+}
+
+export async function addCategory(name: string) {
+  const [created] = await db
+    .insert(categories)
+    .values({ name, position: 999 }) // default to end
+    .returning();
+  return created;
+}
+
+export async function addMenuItem(input: {
+  name: string;
+  priceCents: number;
+  categoryId: number;
+  imageUrl?: string | null;
+}) {
+  const [created] = await db
+    .insert(menuItems)
+    .values({
+      name: input.name,
+      priceCents: input.priceCents,
+      categoryId: input.categoryId,
+      imageUrl: input.imageUrl,
+      isActive: true,
+    })
+    .returning();
+  return created;
 }

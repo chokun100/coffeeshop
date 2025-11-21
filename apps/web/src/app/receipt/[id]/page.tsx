@@ -155,28 +155,25 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
               <div className="border-t border-dashed border-neutral-300 my-2" />
 
               <div className="space-y-0.5 mb-2">
-                <div className="flex justify-between">
-                  <span>{/* date/time placeholder or future field */}</span>
-                  <span className={`uppercase ${is58 ? "text-[10px]" : "text-[11px]"}`}>
-                    Order #{order.id}
-                  </span>
+                <div className={`text-left ${is58 ? "text-[10px]" : "text-[11px]"}`}>
+                   <div>Receipt No.: {order.id}</div>
+                   {order.createdAt && (
+                     <div>{new Date(order.createdAt).toLocaleString('th-TH')}</div>
+                   )}
+                   {!order.createdAt && (
+                     <div>{new Date().toLocaleString('th-TH')}</div>
+                   )}
                 </div>
+
                 {showCustomerDetails && (
-                  <>
+                  <div className={`mt-1 ${is58 ? "text-[10px]" : "text-[11px]"}`}>
                     <div>
-                      <span
-                        className={`font-semibold ${is58 ? "text-[10px]" : "text-[11px]"}`}
-                      >
-                        Table
-                      </span>{" "}
-                      <span className={is58 ? "text-[10px]" : "text-[11px]"}>{tableNumber}</span>
+                      <span className="font-semibold">Table:</span> {tableNumber}
                     </div>
                     {customerName && (
-                      <div className={is58 ? "text-[10px]" : "text-[11px]"}>
-                        Host: {customerName}
-                      </div>
+                      <div>Host: {customerName}</div>
                     )}
-                  </>
+                  </div>
                 )}
                 {printToken && queueNumber && (
                   <div className={is58 ? "text-[10px]" : "text-[11px]"}>
@@ -186,16 +183,6 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
               </div>
 
               <div className="border-t border-dashed border-neutral-300 my-2" />
-
-              <div
-                className={`flex justify-between font-semibold mb-1 ${
-                  is58 ? "text-[10px]" : "text-[11px]"
-                }`}
-              >
-                <span className="w-10 text-left">QTY</span>
-                <span className="flex-1 text-left">DESC</span>
-                <span className="w-16 text-right">AMT</span>
-              </div>
 
               {items.map((it) => {
                 const sugarPct = percentFromSugar(it.sugarLevel);
@@ -211,18 +198,16 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
                   ? [sugarText, extraText, otherNotes || undefined].filter(Boolean).join(' • ')
                   : '';
                 return (
-                  <div key={it.id} className="flex flex-col mb-1.5">
-                    <div className="flex justify-between items-start">
-                      <span className="w-10 text-left tabular-nums">{it.quantity}</span>
-                      <span
-                        className={`flex-1 text-left leading-snug ${
-                          is58 ? "text-[10px]" : "text-[11px]"
-                        }`}
-                      >
-                        {it.itemName}
+                  <div key={it.id} className="flex flex-col mb-3">
+                    <div className={`font-medium text-left text-neutral-900 ${is58 ? "text-[11px]" : "text-xs"}`}>
+                      {it.itemName}
+                    </div>
+                    <div className="flex justify-between items-start text-neutral-600">
+                      <span className={`${is58 ? "text-[10px]" : "text-[11px]"}`}>
+                         {it.quantity}x {formatCurrency(it.unitPriceCents / 100)}
                       </span>
                       <span
-                        className={`w-16 text-right tabular-nums ${
+                        className={`tabular-nums font-medium text-neutral-900 ${
                           is58 ? "text-[10px]" : "text-[11px]"
                         }`}
                       >
@@ -231,7 +216,7 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
                     </div>
                     {details && (
                       <div
-                        className={`pl-10 pr-16 text-neutral-500 leading-snug ${
+                        className={`text-neutral-400 leading-snug mt-0.5 ${
                           is58 ? "text-[9px]" : "text-[10px]"
                         }`}
                       >
@@ -246,15 +231,15 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
 
               <div className={`space-y-0.5 ${is58 ? "text-[10px]" : "text-[11px]"}`}>
                 <div className="flex justify-between">
-                  <span>SUBTOTAL:</span>
+                  <span>Subtotal:</span>
                   <span className="tabular-nums">{formatCurrency(total)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>SALE TAX (7%):</span>
+                  <span>Tax (7%):</span>
                   <span className="tabular-nums">{formatCurrency(0)}</span>
                 </div>
-                <div className="flex justify-between font-semibold mt-1">
-                  <span>AMOUNT:</span>
+                <div className={`flex justify-between font-bold mt-1.5 ${is58 ? "text-[13px]" : "text-sm"}`}>
+                  <span>Total:</span>
                   <span className="tabular-nums">{formatCurrency(total)}</span>
                 </div>
               </div>
@@ -275,11 +260,11 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
               <div className="border-t border-dashed border-neutral-300 my-2" />
 
               <div
-                className={`text-center font-semibold mb-1 ${
+                className={`text-center font-medium mb-1 text-neutral-600 ${
                   is58 ? "text-[10px]" : "text-[11px]"
                 }`}
               >
-                THANK YOU!
+                Thank you for visiting
               </div>
               <div className="mt-2 flex justify-center">
                 <div className="h-8 w-40 bg-linear-to-r from-neutral-300 via-neutral-900 to-neutral-300 opacity-50 print:opacity-80" />
@@ -315,13 +300,15 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
                 <div className="font-semibold">Actions</div>
                 <div className="text-xs text-neutral-500">Manage</div>
               </div>
-              <a
-                className="btn bg-white border border-neutral-200 text-neutral-800 hover:bg-neutral-50 justify-start"
-                href={`/?fromOrder=${order.id}`}
-              >
-                <RotateCcw className="size-4 mr-2" /> Modify Order
-              </a>
-              <Controls orderId={order.id} status={status as any} mode="cancel" />
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  className="btn bg-white border border-neutral-200 text-neutral-800 hover:bg-neutral-50 w-full"
+                  href={`/?fromOrder=${order.id}`}
+                >
+                  <RotateCcw className="size-4 mr-2" /> Modify Order
+                </a>
+                <Controls orderId={order.id} status={status as any} mode="cancel" />
+              </div>
             </div>
           </div>
         </aside>

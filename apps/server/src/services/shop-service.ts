@@ -10,4 +10,8 @@ export {
   updateMenuItemImage,
   getShopSettings,
   upsertShopSettings,
+  getTables,
+  updateTables,
+  addMenuItem,
+  addCategory,
 } from '@coffeeshop/db';

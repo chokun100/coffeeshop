@@ -10,7 +10,7 @@ type Table = {
   maxSeats: number;
 };
 
-const MAX_SEATS = 8;
+const MAX_SEATS = 6;
 
 export default function TablesSettings() {
   const [tables, setTables] = useState<Table[]>([]);
@@ -40,6 +40,20 @@ export default function TablesSettings() {
     setTables((prev) => prev.map((t) => (t.id === id ? { ...t, maxSeats: v } : t)));
   };
 
+  const addTable = () => {
+    setTables((prev) => {
+      const nextId = prev.length > 0 ? Math.max(...prev.map((t) => t.id)) + 1 : 1;
+      return [
+        ...prev,
+        { id: nextId, name: `Table ${nextId}`, maxSeats: 2 },
+      ];
+    });
+  };
+
+  const removeTable = (id: number) => {
+    setTables((prev) => prev.filter((t) => t.id !== id));
+  };
+
   const save = async () => {
     setSaving(true);
     try {
@@ -65,14 +79,23 @@ export default function TablesSettings() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold">Tables</h2>
-        <Button
-          size="sm"
-          className="bg-amber-700 hover:bg-amber-800"
-          onClick={save}
-          disabled={saving}
-        >
-          {saving ? "Saving…" : "Save"}
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button
+            size="sm"
+            variant="outline"
+            onClick={addTable}
+            >
+            + Add Table
+            </Button>
+            <Button
+            size="sm"
+            className="bg-amber-700 hover:bg-amber-800"
+            onClick={save}
+            disabled={saving}
+            >
+            {saving ? "Saving…" : "Save"}
+            </Button>
+        </div>
       </div>
       <p className="text-xs text-neutral-500">Set how many guests each table can seat (max {MAX_SEATS}).</p>
 
@@ -87,16 +110,24 @@ export default function TablesSettings() {
             className="flex items-center justify-between rounded-lg border bg-white px-3 py-2"
           >
             <div className="text-sm font-medium">{t.name}</div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-neutral-500 text-xs">Max seats</span>
-              <Input
-                type="number"
-                min={1}
-                max={MAX_SEATS}
-                value={t.maxSeats}
-                onChange={(e) => updateMaxSeats(t.id, Number(e.target.value))}
-                className="w-16 h-8 px-2 text-sm"
-              />
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-neutral-500 text-xs">Max seats</span>
+                <Input
+                    type="number"
+                    min={1}
+                    max={MAX_SEATS}
+                    value={t.maxSeats}
+                    onChange={(e) => updateMaxSeats(t.id, Number(e.target.value))}
+                    className="w-16 h-8 px-2 text-sm"
+                />
+              </div>
+              <button 
+                onClick={() => removeTable(t.id)}
+                className="text-red-500 hover:text-red-700 text-xs px-2"
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}

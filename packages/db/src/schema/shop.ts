@@ -156,6 +156,18 @@ export const insertOrderItemSchema = baseInsertOrderItemSchema.extend({
 
 export const selectOrderItemSchema = createSelectSchema(orderItems);
 
+// Tables
+export const tables = pgTable('tables', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  maxSeats: integer('max_seats').notNull().default(2),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const insertTableSchema = createInsertSchema(tables);
+export const selectTableSchema = createSelectSchema(tables);
+
 // Types
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
